@@ -26,8 +26,6 @@ jobs:
       - name: Criar código do aplicativo
         run: bash setup.sh
 
-      - name: Habilitar internet no Android
-        run: |
       
       - name: Habilitar internet no Android
         run: |
@@ -38,7 +36,9 @@ jobs:
           cat android/app/src/main/AndroidManifest.xml
           grep -q 'android.permission.INTERNET' android/app/src/main/AndroidManifest.xml
 
+      - name: Instalar dependencias
         run: flutter pub get
+
 
       - name: Gerar APK
         run: |
