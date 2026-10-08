@@ -27,6 +27,9 @@ jobs:
         run: bash setup.sh
 
       
+      - name: Atualizar login e cadastro
+        run: bash auth_upgrade.sh
+        
       - name: Habilitar internet no Android
         run: |
           sed -i 's/<application/<uses-permission android:name="android.permission.INTERNET"\/><application/' android/app/src/main/AndroidManifest.xml
