@@ -502,3 +502,102 @@ class _AuthScreenState extends State<AuthScreen> {
 DART
 
 cat > lib/screen
+cat > lib/screens/reset_password_screen.dart <<'DART'
+import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+class ResetPasswordScreen extends StatefulWidget {
+  const ResetPasswordScreen({super.key});
+
+  @override
+  State<ResetPasswordScreen> createState() =>
+      _ResetPasswordScreenState();
+}
+
+class _ResetPasswordScreenState
+    extends State<ResetPasswordScreen> {
+  final passwordController = TextEditingController();
+  final confirmController = TextEditingController();
+  bool loading = false;
+
+  Future<void> savePassword() async {
+    final password = passwordController.text;
+    if (password.length < 6 ||
+        password != confirmController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Use pelo menos 6 caracteres e confirme a senha.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    setState(() => loading = true);
+    try {
+      await Supabase.instance.client.auth.updateUser(
+        UserAttributes(password: password),
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Senha atualizada!')),
+      );
+      Navigator.of(context).pop();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro: $error')),
+      );
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    passwordController.dispose();
+    confirmController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Nova senha')),
+      body: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            TextField(
+              controller: passwordController,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Nova senha',
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: confirmController,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Confirmar senha',
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: loading ? null : savePassword,
+              child: Text(
+                loading ? 'Salvando...' : 'Salvar nova senha',
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+DART
+
+
