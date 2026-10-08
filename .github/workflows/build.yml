@@ -28,6 +28,11 @@ jobs:
 
       - name: Habilitar internet no Android
         run: |
+      - name: Verificar permissao de internet
+        run: |
+          cat android/app/src/main/AndroidManifest.xml
+          grep -q 'android.permission.INTERNET' android/app/src/main/AndroidManifest.xml
+          
           sed -i 's/<application/<uses-permission android:name="android.permission.INTERNET"\/><application/' android/app/src/main/AndroidManifest.xml
       - name: Instalar dependências
         run: flutter pub get
