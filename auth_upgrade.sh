@@ -501,7 +501,6 @@ class _AuthScreenState extends State<AuthScreen> {
 }
 DART
 
-cat > lib/screen
 cat > lib/screens/reset_password_screen.dart <<'DART'
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
