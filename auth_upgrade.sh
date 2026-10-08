@@ -506,8 +506,12 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
-  const ResetPasswordScreen({super.key});
+  const ResetPasswordScreen({
+  super.key,
+  this.onFinished,
+});
 
+final VoidCallback? onFinished;
   @override
   State<ResetPasswordScreen> createState() =>
       _ResetPasswordScreenState();
