@@ -1,0 +1,42 @@
+name: Gerar APK MiniSéries IA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar projeto
+        uses: actions/checkout@v4
+
+      - name: Instalar Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.29.3'
+          channel: stable
+
+      - name: Criar projeto Flutter Android
+        run: |
+          flutter create . \
+            --project-name=miniseries_ia \
+            --platforms=android
+
+      - name: Criar código do aplicativo
+        run: bash setup.sh
+
+      - name: Instalar dependências
+        run: flutter pub get
+
+      - name: Gerar APK
+        run: |
+          flutter build apk --release \
+            --dart-define=SUPABASE_URL=https://bimbcsyttujxnzusimol.supabase.co \
+            --dart-define=SUPABASE_ANON_KEY=sb_publishable_BLVUNk3KKqBgff8PQ9_q5g_F4Djwbcb
+
+      - name: Disponibilizar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: MiniSeries-IA-APK
+          path: build/app/outputs/flutter-apk/app-release.apk
