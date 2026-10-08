@@ -26,6 +26,9 @@ jobs:
       - name: Criar código do aplicativo
         run: bash setup.sh
 
+      - name: Habilitar internet no Android
+        run: |
+          sed -i 's/<application/<uses-permission android:name="android.permission.INTERNET"\/><application/' android/app/src/main/AndroidManifest.xml
       - name: Instalar dependências
         run: flutter pub get
 
