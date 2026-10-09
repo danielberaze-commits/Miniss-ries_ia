@@ -52,6 +52,18 @@ jobs:
               raise RuntimeError('Nome do app não encontrado')
           arquivo.write_text(texto)
           PY
+           - name: Configurar icone VELORA
+        run: |
+          mkdir -p assets
+          cp velora_icon.png assets/velora_icon.png
+          flutter pub add --dev flutter_launcher_icons
+          cat > flutter_launcher_icons.yaml <<'EOF'
+          flutter_launcher_icons:
+            android: true
+            ios: false
+            image_path: "assets/velora_icon.png"
+          EOF
+          dart run flutter_launcher_icons -f flutter_launcher_icons.yaml
       - name: Verificar permissao de internet
         run: |
           cat android/app/src/main/AndroidManifest.xml
