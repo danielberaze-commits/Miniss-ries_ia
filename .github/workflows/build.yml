@@ -105,20 +105,7 @@ jobs:
               arquivo.write_text(texto)
               print(f'Tema atualizado: {arquivo}')
           PY
-          from pathlib import Path
-
-          base = Path('android/app/src/main/res')
-
-          for arquivo in base.glob('values*/styles.xml'):
-              texto = arquivo.read_text()
-              if 'name="NormalTheme"' in texto:
-                  texto = texto.replace(
-                      '<item name="android:windowBackground">?android:colorBackground</item>',
-                      '<item name="android:windowBackground">@android:color/black</item>'
-                  )
-                  arquivo.write_text(texto)
-                  print(f'Tema atualizado: {arquivo}')
-          PY
+        
       - name: Verificar permissao de internet
         run: |
           cat android/app/src/main/AndroidManifest.xml
