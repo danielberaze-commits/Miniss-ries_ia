@@ -1,4 +1,4 @@
-name: Gerar APK MiniSéries IA
+name: Gerar APK VELORA
 
 on:
   workflow_dispatch:
