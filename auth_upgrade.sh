@@ -22,7 +22,13 @@ Future<void> main() async {
     ));
     return;
   }
-  await Supabase.initialize(url: url, anonKey: key);
+  await Supabase.initialize(
+  url: url,
+  anonKey: key,
+  authOptions: const FlutterAuthClientOptions(
+    authFlowType: AuthFlowType.pkce,
+  ),
+);
   runApp(const MiniSeriesApp());
 }
 
