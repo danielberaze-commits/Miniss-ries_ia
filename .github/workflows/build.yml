@@ -34,7 +34,7 @@ jobs:
         run: |
           sed -i 's/<application/<uses-permission android:name="android.permission.INTERNET"\/><application/' android/app/src/main/AndroidManifest.xml
 
-      - name: Alterar nome para VELORA
+      - name: Alterar nome para Velora
         run: |
           python3 - <<'PY'
           from pathlib import Path
