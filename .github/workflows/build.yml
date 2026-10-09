@@ -65,12 +65,13 @@ jobs:
             image_path: "assets/velora_icon.png"
           EOF
           dart run flutter_launcher_icons -f flutter_launcher_icons.yaml
-      - name: Configurar abertura Velora
+           - name: Configurar abertura Velora
         run: |
-         flutter pub add --dev flutter_native_splash
-         cp velora_splash.png assets/velora_splash.png
+          flutter pub add --dev flutter_native_splash
+          mkdir -p assets
+          cp velora_splash.png assets/velora_splash.png
           cat > flutter_native_splash.yaml <<'EOF'
-                    flutter_native_splash:
+          flutter_native_splash:
             color: "#000000"
             color_dark: "#000000"
             image: assets/velora_splash.png
@@ -85,43 +86,7 @@ jobs:
               icon_background_color_dark: "#000000"
           EOF
           dart run flutter_native_splash:create
-       - name: Corrigir tema Android Velora
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-
-          base = Path("android/app/src/main/res")
-
-          for arquivo in base.glob("values*/styles.xml"):
-              texto = arquivo.read_text()
-
-              for tema in ("LaunchTheme", "NormalTheme"):
-                  padrao = (
-                      r'(<style\s+name="' + tema +
-                      r'"[^>]*>)(.*?)(</style>)'
-                  )
-
-                  def corrigir(m):
-                      conteudo = re.sub(
-                          r'<item name="android:windowBackground">.*?</item>',
-                          '',
-                          m.group(2),
-                          flags=re.S
-                      )
-                      conteudo += (
-                          '\n<item name="android:windowBackground">'
-                          '@android:color/black</item>\n'
-                      )
-                      return m.group(1) + conteudo + m.group(3)
-
-                  texto = re.sub(
-                      padrao, corrigir, texto, flags=re.S
-                  )
-
-              arquivo.write_text(texto)
-              print("Tema atualizado:", arquivo)
-          PY
+       
       - name: Verificar permissao de internet
         run: |
           cat android/app/src/main/AndroidManifest.xml
