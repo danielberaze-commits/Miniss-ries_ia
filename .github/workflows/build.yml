@@ -64,6 +64,20 @@ jobs:
             image_path: "assets/velora_icon.png"
           EOF
           dart run flutter_launcher_icons -f flutter_launcher_icons.yaml
+      - name: Configurar abertura Velora
+        run: |
+          flutter pub add --dev flutter_native_splash
+          cat > flutter_native_splash.yaml <<'EOF'
+          flutter_native_splash:
+            color: "#000000"
+            image: assets/velora_icon.png
+            android: true
+            ios: false
+            android_12:
+              color: "#000000"
+              image: assets/velora_icon.png
+          EOF
+          dart run flutter_native_splash:create
       - name: Verificar permissao de internet
         run: |
           cat android/app/src/main/AndroidManifest.xml
