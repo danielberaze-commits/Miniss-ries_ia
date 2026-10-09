@@ -85,7 +85,43 @@ jobs:
               icon_background_color_dark: "#000000"
           EOF
           dart run flutter_native_splash:create
-  
+       - name: Corrigir tema Android Velora
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          base = Path("android/app/src/main/res")
+
+          for arquivo in base.glob("values*/styles.xml"):
+              texto = arquivo.read_text()
+
+              for tema in ("LaunchTheme", "NormalTheme"):
+                  padrao = (
+                      r'(<style\s+name="' + tema +
+                      r'"[^>]*>)(.*?)(</style>)'
+                  )
+
+                  def corrigir(m):
+                      conteudo = re.sub(
+                          r'<item name="android:windowBackground">.*?</item>',
+                          '',
+                          m.group(2),
+                          flags=re.S
+                      )
+                      conteudo += (
+                          '\n<item name="android:windowBackground">'
+                          '@android:color/black</item>\n'
+                      )
+                      return m.group(1) + conteudo + m.group(3)
+
+                  texto = re.sub(
+                      padrao, corrigir, texto, flags=re.S
+                  )
+
+              arquivo.write_text(texto)
+              print("Tema atualizado:", arquivo)
+          PY
       - name: Verificar permissao de internet
         run: |
           cat android/app/src/main/AndroidManifest.xml
