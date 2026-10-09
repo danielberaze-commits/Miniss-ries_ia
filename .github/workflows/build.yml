@@ -44,7 +44,7 @@ jobs:
           texto = arquivo.read_text()
           texto, n = re.subn(
               r'android:label="[^"]*"',
-              'android:label="VELORA"',
+              'android:label="Velora"',
               texto,
               count=1
           )
@@ -52,7 +52,7 @@ jobs:
               raise RuntimeError('Nome do app não encontrado')
           arquivo.write_text(texto)
           PY
-      - name: Configurar icone VELORA
+      - name: Configurar icone Velora
         run: |
           mkdir -p assets
           cp velora_icon.png assets/velora_icon.png
