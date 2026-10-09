@@ -17,7 +17,7 @@ jobs:
           flutter-version: '3.29.3'
           channel: stable
 
-            - name: Criar projeto Flutter Android
+      - name: Criar projeto Flutter Android
         run: |
           flutter create . \
             --project-name=miniseries_ia \
@@ -26,7 +26,30 @@ jobs:
 
       - name: Criar código do aplicativo
         run: bash setup.sh
+      - name: Configurar identificador Velora
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
 
+          arquivo = Path("android/app/build.gradle.kts")
+
+          if not arquivo.exists():
+              raise RuntimeError("Arquivo build.gradle.kts não encontrado")
+
+          texto = arquivo.read_text()
+
+          import re
+          texto, quantidade = re.subn(
+              r'applicationId\s*=\s*"[^"]+"',
+              'applicationId = "com.velora.streaming"',
+              texto
+          )
+
+          if quantidade != 1:
+              raise RuntimeError("Não foi possível alterar o applicationId")
+
+          arquivo.write_text(texto)
+          PY
       
       - name: Atualizar login e cadastro
         run: bash auth_upgrade.sh
