@@ -39,6 +39,31 @@ jobs:
           cat android/app/src/main/AndroidManifest.xml
           grep -q 'android.permission.INTERNET' android/app/src/main/AndroidManifest.xml
 
+           - name: Configurar links de autenticacao Android
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("android/app/src/main/AndroidManifest.xml")
+          content = path.read_text()
+
+          intent_filter = """
+                  <intent-filter android:autoVerify="false">
+                      <action android:name="android.intent.action.VIEW" />
+                      <category android:name="android.intent.category.DEFAULT" />
+                      <category android:name="android.intent.category.BROWSABLE" />
+                      <data android:scheme="miniseriesia" />
+                  </intent-filter>
+          """
+
+          if 'android:scheme="miniseriesia"' not in content:
+              content = content.replace(
+                  "</activity>",
+                  intent_filter + "\n        </activity>",
+                  1
+              )
+              path.write_text(content)
+          PY
       - name: Instalar dependencias
         run: flutter pub get
 
