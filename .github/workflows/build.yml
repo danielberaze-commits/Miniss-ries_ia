@@ -1,4 +1,4 @@
-name: Gerar APK VELORA
+name: Gerar APK Velora
 
 on:
   workflow_dispatch:
