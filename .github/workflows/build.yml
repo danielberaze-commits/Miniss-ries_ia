@@ -65,7 +65,7 @@ jobs:
             image_path: "assets/velora_icon.png"
           EOF
           dart run flutter_launcher_icons -f flutter_launcher_icons.yaml
-      - name: Configurar abertura Velora
+       - name: Configurar abertura Velora
         run: |
          flutter pub add --dev flutter_native_splash
          cp velora_splash.png assets/velora_splash.png
@@ -83,7 +83,7 @@ jobs:
               icon_background_color_dark: "#000000"
           EOF
           dart run flutter_native_splash:create
-       - name: Corrigir tema de abertura Velora
+      - name: Corrigir tema de abertura Velora
         run: |
           python3 - <<'PY'
           from pathlib import Path
