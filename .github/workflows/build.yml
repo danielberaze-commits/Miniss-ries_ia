@@ -34,6 +34,24 @@ jobs:
         run: |
           sed -i 's/<application/<uses-permission android:name="android.permission.INTERNET"\/><application/' android/app/src/main/AndroidManifest.xml
 
+           - name: Alterar nome para VELORA
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          arquivo = Path('android/app/src/main/AndroidManifest.xml')
+          texto = arquivo.read_text()
+          texto, n = re.subn(
+              r'android:label="[^"]*"',
+              'android:label="VELORA"',
+              texto,
+              count=1
+          )
+          if n != 1:
+              raise RuntimeError('Nome do app não encontrado')
+          arquivo.write_text(texto)
+          PY
       - name: Verificar permissao de internet
         run: |
           cat android/app/src/main/AndroidManifest.xml
