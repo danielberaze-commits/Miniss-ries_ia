@@ -38,8 +38,7 @@ jobs:
         run: |
           cat android/app/src/main/AndroidManifest.xml
           grep -q 'android.permission.INTERNET' android/app/src/main/AndroidManifest.xml
-
-           - name: Configurar links de autenticacao Android
+      - name: Configurar links de autenticacao Android
         run: |
           python3 - <<'PY'
           from pathlib import Path
