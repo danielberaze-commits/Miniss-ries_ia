@@ -554,7 +554,7 @@ class _ResetPasswordScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Senha atualizada!')),
       );
-      Navigator.of(context).pop();
+      widget.onFinished?.call();
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
