@@ -68,15 +68,17 @@ class _MiniSeriesAppState extends State<MiniSeriesApp> {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF7956D8)),
         useMaterial3: true,
       ),
-      home: session == null
-          ? const AuthScreen()
-          : _passwordRecovery
-              ? ResetPasswordScreen(
-                  onFinished: () {
-                    if (mounted) setState(() => _passwordRecovery = false);
-                  },
-                )
-              : const HomeScreen(),
+      home: _passwordRecovery
+    ? ResetPasswordScreen(
+        onFinished: () {
+          if (mounted) {
+            setState(() => _passwordRecovery = false);
+          }
+        },
+      )
+    : session == null
+        ? const AuthScreen()
+        : const HomeScreen(),
     );
   }
 }
