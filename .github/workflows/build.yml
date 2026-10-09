@@ -77,6 +77,7 @@ jobs:
             android_12:
               color: "#000000"
               image: assets/velora_splash.png
+              icon_background_color: "#000000"
           EOF
           dart run flutter_native_splash:create
       - name: Verificar permissao de internet
