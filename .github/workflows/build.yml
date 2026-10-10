@@ -58,7 +58,9 @@ jobs:
       - name: Personalizar recuperacao de senha Velora
         run: bash velora_reset_premium.sh
       - name: Criar pagina inicial Velora
-        run: bash velora_home_upgrade.sh 
+        run: bash velora_home_upgrade.sh
+      - name: Adicionar exclusao de conta Velora
+        run: bash velora_delete_account_upgrade.sh
       - name: Habilitar internet no Android
         run: |
           sed -i 's/<application/<uses-permission android:name="android.permission.INTERNET"\/><application/' android/app/src/main/AndroidManifest.xml
