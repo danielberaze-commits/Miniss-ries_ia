@@ -34,10 +34,13 @@ method='''  Future<void> _deleteAccount() async {
     try {
       final session = Supabase.instance.client.auth.currentSession;
       if (session == null) throw Exception('Sessão expirada. Entre novamente.');
-      final response = await Supabase.instance.client.functions.invoke(
-        'delete-account',
-        headers: {'Authorization': 'Bearer ${session.accessToken}'},
-      );
+     final response = await Supabase.instance.client.functions.invoke(
+  'delete-account',
+  headers: {'Authorization': 'Bearer ${session.accessToken}'},
+  body: {
+    'confirmation': 'EXCLUIR MINHA CONTA',
+  },
+);
       if (response.status < 200 || response.status >= 300) {
         throw Exception('Servidor não concluiu a exclusão: ${response.data}');
       }
