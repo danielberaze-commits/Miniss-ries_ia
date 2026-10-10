@@ -6,67 +6,61 @@ const headers = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Content-Type': 'application/json; charset=utf-8',
 };
-
-function reply(status: number, body: Record<string, unknown>): Response {
-  return new Response(JSON.stringify(body), { status, headers });
-}
+const reply = (status: number, body: Record<string, unknown>) =>
+  new Response(JSON.stringify(body), { status, headers });
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers });
   if (req.method !== 'POST') return reply(405, { error: 'Método não permitido.' });
 
-  const authHeader = req.headers.get('Authorization') ?? '';
-  if (!authHeader.startsWith('Bearer ')) {
-    return reply(401, { error: 'Faça login para continuar.' });
-  }
-  const token = authHeader.slice(7).trim();
-  if (!token) return reply(401, { error: 'Token ausente.' });
-
-  let body: unknown;
+  const authorization = req.headers.get('Authorization') ?? '';
+  if (!authorization.startsWith('Bearer ')) return reply(401, { error: 'Entre na sua conta.' });
+  const token = authorization.slice(7).trim();
+  let body: Record<string, unknown>;
   try {
-    body = await req.json();
-  } catch {
-    return reply(400, { error: 'Dados inválidos.' });
-  }
-  if (
-    typeof body !== 'object' || body === null ||
-    (body as Record<string, unknown>).confirmation !== 'EXCLUIR MINHA CONTA'
-  ) {
-    return reply(400, { error: 'Confirmação de exclusão obrigatória.' });
+    const value: unknown = await req.json();
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw Error();
+    body = value as Record<string, unknown>;
+  } catch { return reply(400, { error: 'Requisição inválida.' }); }
+
+  if (body.confirmation !== 'EXCLUIR MINHA CONTA' ||
+      typeof body.code !== 'string' || !/^\d{6,8}$/.test(body.code.trim())) {
+    return reply(400, { error: 'Confirmação e código de segurança obrigatórios.' });
   }
 
   const url = Deno.env.get('SUPABASE_URL');
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  if (!url || !anonKey || !serviceKey) {
-    console.error('Configuração Supabase incompleta.');
-    return reply(500, { error: 'Serviço temporariamente indisponível.' });
-  }
+  if (!url || !anonKey || !serviceKey) return reply(500, { error: 'Servidor não configurado.' });
 
   try {
-    const userClient = createClient(url, anonKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-      global: { headers: { Authorization: `Bearer ${token}` } },
+    const auth = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data: identity, error: identityError } = await auth.auth.getUser(token);
+    const user = identity.user;
+    if (identityError || !user || !user.email) return reply(401, { error: 'Sessão inválida.' });
+
+    // Valida o código no servidor, e não apenas no aplicativo.
+    const { data: verified, error: otpError } = await auth.auth.verifyOtp({
+      email: user.email,
+      token: body.code.trim(),
+      type: 'email',
     });
-    const { data, error: userError } = await userClient.auth.getUser(token);
-    if (userError || !data.user) {
-      return reply(401, { error: 'Sessão inválida ou expirada.' });
+    if (otpError || !verified.user || verified.user.id !== user.id) {
+      return reply(403, { error: 'Código inválido ou expirado.' });
     }
 
     const admin = createClient(url, serviceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
+      auth: { persistSession: false, autoRefreshToken: false },
     });
-
-    // ATENÇÃO: antes de uso público, implementar reautenticação recente
-    // e definir a política de remoção de dados associados ao usuário.
-    const { error: deleteError } = await admin.auth.admin.deleteUser(data.user.id);
+    // ATENÇÃO: verificar dependências FK e política de remoção dos dados antes do deploy.
+    const { error: deleteError } = await admin.auth.admin.deleteUser(user.id);
     if (deleteError) {
-      console.error('Falha ao excluir usuário:', deleteError.message);
-      return reply(500, { error: 'Não foi possível excluir a conta.' });
+      console.error('Erro ao excluir conta:', deleteError.message);
+      return reply(500, { error: 'Não foi possível concluir a exclusão.' });
     }
     return reply(200, { success: true });
   } catch (error) {
-    console.error('Falha inesperada na exclusão:', error);
-    return reply(500, { error: 'Erro interno. Tente novamente.' });
+    console.error('Erro inesperado:', error);
+    return reply(500, { error: 'Falha temporária no servidor.' });
   }
 });
