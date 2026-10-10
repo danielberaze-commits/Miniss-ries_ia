@@ -55,6 +55,8 @@ jobs:
         run: bash auth_upgrade.sh
       - name: Personalizar login Velora
         run: bash velora_login_premium.sh
+      - name: Personalizar recuperacao de senha Velora
+        run: bash velora_reset_premium.sh
       - name: Criar pagina inicial Velora
         run: bash velora_home_upgrade.sh 
       - name: Habilitar internet no Android
