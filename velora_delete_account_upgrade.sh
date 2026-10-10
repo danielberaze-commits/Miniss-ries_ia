@@ -32,15 +32,52 @@ method='''  Future<void> _deleteAccount() async {
     confirmation.dispose();
     if (approved != true || !mounted) return;
     try {
-      final session = Supabase.instance.client.auth.currentSession;
-      if (session == null) throw Exception('Sessão expirada. Entre novamente.');
-     final response = await Supabase.instance.client.functions.invoke(
-  'delete-account',
-  headers: {'Authorization': 'Bearer ${session.accessToken}'},
-  body: {
-    'confirmation': 'EXCLUIR MINHA CONTA',
-  },
-);
+      final client = Supabase.instance.client;
+      final session = client.auth.currentSession;
+      final email = client.auth.currentUser?.email;
+      if (session == null || email == null || email.isEmpty) {
+        throw Exception('Sessão expirada ou e-mail não disponível.');
+      }
+      // O e-mail de código usa o template Magic Link do Supabase.
+      // shouldCreateUser: false impede criação de contas nesta etapa.
+      await client.auth.signInWithOtp(
+        email: email,
+        shouldCreateUser: false,
+      );
+      if (!mounted) return;
+      final codeController = TextEditingController();
+      final code = await showDialog<String>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          backgroundColor: _surface,
+          title: const Text('Código de segurança', style: TextStyle(color: _gold)),
+          content: Column(mainAxisSize: MainAxisSize.min, children: [
+            Text('Enviamos um código para $email. Digite o código para confirmar a exclusão.'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: codeController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Código recebido por e-mail'),
+            ),
+          ]),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancelar')),
+            TextButton(onPressed: () => Navigator.pop(dialogContext, codeController.text.trim()),
+              child: const Text('Verificar e excluir')),
+          ],
+        ),
+      );
+      codeController.dispose();
+      if (code == null || code.isEmpty || !mounted) return;
+      final response = await client.functions.invoke(
+        'delete-account',
+        headers: {'Authorization': 'Bearer ${session.accessToken}'},
+        body: {
+          'confirmation': 'EXCLUIR MINHA CONTA',
+          'code': code,
+        },
+      );
       if (response.status < 200 || response.status >= 300) {
         throw Exception('Servidor não concluiu a exclusão: ${response.data}');
       }
