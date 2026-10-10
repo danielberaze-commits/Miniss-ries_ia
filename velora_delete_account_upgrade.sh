@@ -2,6 +2,7 @@
 set -euo pipefail
 python3 - <<'PY'
 from pathlib import Path
+import re
 p=Path('lib/screens/home_screen.dart')
 s=p.read_text()
 needle='  Widget _profile() {'
@@ -107,8 +108,9 @@ new='''       Card(color: _surface, child: ListTile(
          trailing: const Icon(Icons.chevron_right),
          onTap: _deleteAccount,
        )),'''
-assert s.count(old)==1, 'Não encontrei o texto antigo de exclusão no perfil'
-s=s.replace(old,new)
+pattern = r"\s*const Text\('Gerenciamento e exclusão de conta serão adicionados '\s*'em uma próxima etapa, com proteção no servidor\.',\s*style: TextStyle\(color: Color\(0xFFBDB5C9\), fontSize: 12\)\),"
+assert len(re.findall(pattern, s)) == 1, 'Não encontrei o texto antigo de exclusão no perfil'
+s = re.sub(pattern, '\n'+new, s, count=1)
 p.write_text(s)
 print('Página Perfil atualizada com botão de exclusão e confirmação.')
 PY
