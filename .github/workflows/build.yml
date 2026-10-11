@@ -63,6 +63,12 @@ jobs:
         run: bash velora_delete_account_upgrade.sh
       - name: Configurar idiomas do Velora
         run: bash velora_language_upgrade.sh
+      - name: Configurar assinatura permanente Velora
+        run: bash velora_signing_upgrade.sh
+        env:
+          VELORA_KEYSTORE_BASE64: ${{ secrets.VELORA_KEYSTORE_BASE64 }}
+          VELORA_KEYSTORE_PASSWORD: ${{ secrets.VELORA_KEYSTORE_PASSWORD }}
+          VELORA_KEY_PASSWORD: ${{ secrets.VELORA_KEY_PASSWORD }}
       - name: Habilitar internet no Android
         run: |
           sed -i 's/<application/<uses-permission android:name="android.permission.INTERNET"\/><application/' android/app/src/main/AndroidManifest.xml
@@ -153,6 +159,9 @@ jobs:
 
 
       - name: Gerar APK
+        env:
+          VELORA_KEYSTORE_PASSWORD: ${{ secrets.VELORA_KEYSTORE_PASSWORD }}
+          VELORA_KEY_PASSWORD: ${{ secrets.VELORA_KEY_PASSWORD }}
         run: |
           flutter build apk --release \
             --dart-define=SUPABASE_URL=https://bimbcsyttujxnzusimol.supabase.co \
@@ -164,6 +173,9 @@ jobs:
           name: MiniSeries-IA-APK
           path: build/app/outputs/flutter-apk/app-release.apk
       - name: Gerar AAB para Google Play
+        env:
+          VELORA_KEYSTORE_PASSWORD: ${{ secrets.VELORA_KEYSTORE_PASSWORD }}
+          VELORA_KEY_PASSWORD: ${{ secrets.VELORA_KEY_PASSWORD }}
         run: |
           flutter build appbundle --release \
             --dart-define=SUPABASE_URL=https://bimbcsyttujxnzusimol.supabase.co \
