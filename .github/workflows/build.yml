@@ -61,6 +61,8 @@ jobs:
         run: bash velora_home_upgrade.sh
       - name: Adicionar exclusao de conta Velora
         run: bash velora_delete_account_upgrade.sh
+      - name: Configurar idiomas do Velora
+        run: bash velora_language_upgrade.sh
       - name: Habilitar internet no Android
         run: |
           sed -i 's/<application/<uses-permission android:name="android.permission.INTERNET"\/><application/' android/app/src/main/AndroidManifest.xml
