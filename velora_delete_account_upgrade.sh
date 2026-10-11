@@ -15,18 +15,41 @@ method='''  Future<void> _deleteAccount() async {
         backgroundColor: _surface,
         title: const Text('Excluir minha conta', style: TextStyle(color: _gold)),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Text('Esta ação é permanente. Sua conta será excluída e você perderá o acesso ao Velora. Digite EXCLUIR para confirmar.'),
+          const Text('Esta ação é permanente. Sua conta será excluída e você perderá o acesso ao Velora. Digite EXCLUIR para confirmar.'
+          style: TextStyle(color: Color(0xFFF5F1FA), fontSize: 15,
           const SizedBox(height: 14),
-          TextField(controller: confirmation,
-            decoration: const InputDecoration(labelText: 'Digite EXCLUIR'),
-          ),
+          TextField(
+  controller: confirmation,
+  style: const TextStyle(color: Color(0xFFFFFFFF)),
+  cursorColor: const Color(0xFFE8BF82),
+  decoration: const InputDecoration(
+    labelText: 'Digite EXCLUIR',
+    labelStyle: TextStyle(color: Color(0xFFC9C3D3)),
+    floatingLabelStyle: TextStyle(color: Color(0xFFE8BF82)),
+    enabledBorder: UnderlineInputBorder(
+      borderSide: BorderSide(color: Color(0xFF8E79B5)),
+    ),
+    focusedBorder: UnderlineInputBorder(
+      borderSide: BorderSide(color: Color(0xFFE8BF82), width: 2),
+    ),
+  ),
+),
         ]),
         actions: [
           TextButton(onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancelar')),
+            child: const Text(
+  'Cancelar',
+  style: TextStyle(color: Color(0xFFC9C3D3)),
+)),
           TextButton(onPressed: () => Navigator.pop(dialogContext,
             confirmation.text.trim() == 'EXCLUIR'),
-            child: const Text('Confirmar exclusão')),
+           child: const Text(
+  'Confirmar exclusão',
+  style: TextStyle(
+    color: Color(0xFFFF777D),
+    fontWeight: FontWeight.bold,
+  ),
+)),
         ],
       ),
     );
