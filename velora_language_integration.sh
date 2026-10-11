@@ -113,12 +113,24 @@ if selector_import not in p:
         raise SystemExit('ERRO: imports do perfil nao encontrados.')
     p = p[:match.end()] + '\n' + selector_import + p[match.end():]
 
-# No layout conhecido, a opcao de sair fica em Card(color: _surface, child: ListTile(...).
-needle = 'Card(color: _surface, child: ListTile('
+# Localiza o cartao de sair a partir do texto visivel, mesmo que outros
+# scripts tenham alterado espacamento, parametros ou incluido novos cartoes.
 if 'const VeloraLanguageSelector()' not in p:
-    if p.count(needle) != 1:
-        raise SystemExit('ERRO: ponto de insercao do perfil nao identificado. Tela preservada.')
-    p = p.replace(needle, 'const VeloraLanguageSelector(),\n            ' + needle, 1)
+    logout = re.search(r"title\s*:\s*(?:const\s+)?Text\(\s*['\"]Sair da conta['\"]", p)
+    if not logout:
+        raise SystemExit('ERRO: texto de sair da conta nao localizado. Tela preservada.')
+    prefix = p[:logout.start()]
+    # A tela original usa Card(... child: ListTile(... title: Text(...)).
+    cards = list(re.finditer(r"(?m)^[ \t]*Card\s*\(", prefix))
+    if not cards:
+        raise SystemExit('ERRO: cartao de sair nao localizado. Tela preservada.')
+    card = cards[-1]
+    between = p[card.end():logout.start()]
+    if 'ListTile' not in between or len(between) > 1600:
+        raise SystemExit('ERRO: estrutura do cartao de sair inesperada. Tela preservada.')
+    line_start = p.rfind('\n', 0, card.start()) + 1
+    indent = re.match(r'[ \t]*', p[line_start:]).group(0)
+    p = p[:line_start] + indent + 'const VeloraLanguageSelector(),\n' + p[line_start:]
 
 main.write_text(s, encoding='utf-8')
 profile.write_text(p, encoding='utf-8')
