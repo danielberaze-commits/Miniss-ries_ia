@@ -129,7 +129,6 @@ TextButton(
     style: TextStyle(
       color: Color(0xFFFF777D),
       fontWeight: FontWeight.bold,
-    ),
   ),
 ),
           ],
