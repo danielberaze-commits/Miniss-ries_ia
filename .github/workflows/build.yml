@@ -63,6 +63,8 @@ jobs:
         run: bash velora_delete_account_upgrade.sh
       - name: Configurar idiomas do Velora
         run: bash velora_language_upgrade.sh
+      - name: Integrar idiomas nas telas do Velora
+        run: bash velora_language_integration.sh
       - name: Configurar sistema de atualizacao Velora
         run: bash velora_update_upgrade.sh
       - name: Configurar assinatura permanente Velora
