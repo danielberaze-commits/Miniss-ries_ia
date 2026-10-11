@@ -106,7 +106,7 @@ method='''  Future<void> _deleteAccount() async {
     ),
   ),
 ),
-            ),
+            
           ]),
           actions: [
             TextButton(
@@ -131,9 +131,9 @@ TextButton(
       fontWeight: FontWeight.bold,
   ),
 ),
-          ],
-        ),
-      );
+        ],
+      ),
+    );
       codeController.dispose();
       if (code == null || code.isEmpty || !mounted) return;
       final response = await client.functions.invoke(
