@@ -81,19 +81,57 @@ method='''  Future<void> _deleteAccount() async {
           backgroundColor: _surface,
           title: const Text('Código de segurança', style: TextStyle(color: _gold)),
           content: Column(mainAxisSize: MainAxisSize.min, children: [
-            Text('Enviamos um código para $email. Digite o código para confirmar a exclusão.'),
+           Text(
+  'Enviamos um código para $email. Digite o código para confirmar a exclusão.',
+  style: const TextStyle(
+    color: Color(0xFFF5F1FA),
+    fontSize: 15,
+  ),
+),
             const SizedBox(height: 12),
-            TextField(
-              controller: codeController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Código recebido por e-mail'),
+           TextField(
+  controller: codeController,
+  keyboardType: TextInputType.number,
+  style: const TextStyle(color: Color(0xFFFFFFFF)),
+  cursorColor: const Color(0xFFE8BF82),
+  decoration: const InputDecoration(
+    labelText: 'Código recebido por e-mail',
+    labelStyle: TextStyle(color: Color(0xFFC9C3D3)),
+    floatingLabelStyle: TextStyle(color: Color(0xFFE8BF82)),
+    enabledBorder: UnderlineInputBorder(
+      borderSide: BorderSide(color: Color(0xFF8E79B5)),
+    ),
+    focusedBorder: UnderlineInputBorder(
+      borderSide: BorderSide(color: Color(0xFFE8BF82), width: 2),
+    ),
+  ),
+),
             ),
           ]),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancelar')),
-            TextButton(onPressed: () => Navigator.pop(dialogContext, codeController.text.trim()),
-              child: const Text('Verificar e excluir')),
+            TextButton(
+  onPressed: () => Navigator.pop(dialogContext),
+  child: const Text(
+    'Cancelar',
+    style: TextStyle(
+      color: Color(0xFFC9C3D3),
+      fontWeight: FontWeight.w500,
+    ),
+  ),
+),
+TextButton(
+  onPressed: () => Navigator.pop(
+    dialogContext,
+    codeController.text.trim(),
+  ),
+  child: const Text(
+    'Verificar e excluir',
+    style: TextStyle(
+      color: Color(0xFFFF777D),
+      fontWeight: FontWeight.bold,
+    ),
+  ),
+),
           ],
         ),
       );
