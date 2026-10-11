@@ -15,8 +15,13 @@ method='''  Future<void> _deleteAccount() async {
         backgroundColor: _surface,
         title: const Text('Excluir minha conta', style: TextStyle(color: _gold)),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Text('Esta ação é permanente. Sua conta será excluída e você perderá o acesso ao Velora. Digite EXCLUIR para confirmar.'
-          style: TextStyle(color: Color(0xFFF5F1FA), fontSize: 15,
+         const Text(
+  'Esta ação é permanente. Sua conta será excluída e você perderá o acesso ao Velora. Digite EXCLUIR para confirmar.',
+  style: TextStyle(
+    color: Color(0xFFF5F1FA),
+    fontSize: 15,
+  ),
+),
           const SizedBox(height: 14),
           TextField(
   controller: confirmation,
