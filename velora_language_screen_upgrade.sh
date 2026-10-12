@@ -165,8 +165,17 @@ class _VeloraLanguageScreenState extends State<VeloraLanguageScreen> {
               child: _saving
                 ? const SizedBox(height: 22, width: 22,
                     child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : Text(VeloraText.get('continue'),
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+          : Text(
+    switch (_selected) {
+      VeloraLanguage.ptBR => 'Continuar',
+      VeloraLanguage.en => 'Continue',
+      VeloraLanguage.es => 'Continuar',
+    },
+    style: const TextStyle(
+      fontSize: 16,
+      fontWeight: FontWeight.w700,
+    ),
+  ),
             ),
           ),
           const SizedBox(height: 20),
