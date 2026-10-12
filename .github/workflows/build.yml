@@ -71,7 +71,7 @@ jobs:
         run: bash velora_language_screen_upgrade.sh
       - name: Traduzir exclusao de conta Velora
         run: bash velora_delete_translation.sh
-        - name: Atualizar idiomas em tempo real
+      - name: Atualizar idiomas em tempo real
         run: bash velora_language_live_refresh.sh
       - name: Configurar sistema de atualizacao Velora
         run: bash velora_update_upgrade.sh
