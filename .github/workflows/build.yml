@@ -75,6 +75,8 @@ jobs:
         run: bash velora_language_live_refresh.sh
       - name: Atualizar seletor de idiomas
         run: bash velora_language_selector_refresh.sh
+      - name: Traduzir login para tres idiomas
+        run: bash velora_auth_multilingual.sh
       - name: Configurar sistema de atualizacao Velora
         run: bash velora_update_upgrade.sh
       - name: Configurar assinatura permanente Velora
