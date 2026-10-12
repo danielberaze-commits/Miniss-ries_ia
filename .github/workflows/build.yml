@@ -24,8 +24,14 @@ jobs:
             --org=com.velora \
             --platforms=android
 
-      - name: Criar código do aplicativo
+       - name: Criar código do aplicativo
         run: bash setup.sh
+
+      - name: Configurar versao do Velora
+        env:
+          VELORA_APP_VERSION: '1.0.0'
+        run: bash velora_versionamento_upgrade.sh
+
       - name: Configurar identificador Velora
         run: |
           python3 - <<'PY'
