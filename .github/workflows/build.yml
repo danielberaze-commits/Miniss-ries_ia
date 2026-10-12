@@ -11,7 +11,7 @@ jobs:
       - name: Baixar projeto
         uses: actions/checkout@v4
 
-           - name: Instalar Flutter
+      - name: Instalar Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.29.3'
@@ -24,7 +24,7 @@ jobs:
             --org=com.velora \
             --platforms=android
 
-       - name: Criar código do aplicativo
+      - name: Criar código do aplicativo
         run: bash setup.sh
 
       - name: Configurar versao do Velora
