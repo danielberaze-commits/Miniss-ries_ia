@@ -67,6 +67,8 @@ jobs:
         run: bash velora_language_integration.sh
       - name: Traduzir telas principais do Velora
         run: bash velora_home_translation.sh
+      - name: Criar tela premium de idiomas
+        run: bash velora_language_screen_upgrade.sh
       - name: Configurar sistema de atualizacao Velora
         run: bash velora_update_upgrade.sh
       - name: Configurar assinatura permanente Velora
