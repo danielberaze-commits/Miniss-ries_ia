@@ -87,6 +87,27 @@ jobs:
         run: bash velora_responsividade_acessibilidade.sh
       - name: Corrigir responsividade da tela de idiomas
         run: bash velora_idiomas_responsivo.sh
+      - name: Diagnosticar tela Explorar
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('lib/screens/home_screen.dart')
+          lines = p.read_text(encoding='utf-8').splitlines()
+          for i, line in enumerate(lines):
+              if any(x in line for x in (
+                  'Widget _explore(',
+                  'hintText:',
+                  'TextField(',
+                  'Nenhuma minissérie',
+                  'NavigationDestination(',
+                  'bottomNavigationBar:',
+              )):
+                  a = max(0, i - 3)
+                  b = min(len(lines), i + 9)
+                  print(f'\n--- Linhas {a+1} a {b} ---')
+                  for j in range(a, b):
+                      print(f'{j+1}: {lines[j]}')
+          PY
       - name: Corrigir acessibilidade da tela Início e Explorar
         run: bash velora_home_acessibilidade_fix.sh
       - name: Configurar sistema de atualizacao Velora
