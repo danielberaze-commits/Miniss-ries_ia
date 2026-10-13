@@ -52,8 +52,8 @@ empty = '''  Widget _empty() => LayoutBuilder(builder: (context, constraints) {
           children: [
             const Icon(Icons.movie_filter_outlined, color: _gold, size: 58),
             const SizedBox(height: 18),
-            const Center(
-              child: ConstrainedBox(
+           Center(
+            child: ConstrainedBox(
                 constraints: BoxConstraints(maxWidth: 360),
                 child: Text(
                   'O próximo capítulo começa aqui',
