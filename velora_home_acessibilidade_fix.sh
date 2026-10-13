@@ -1,19 +1,46 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# Executar apos os scripts de traducao e responsividade.
 python3 - <<'PY'
 from pathlib import Path
-import re
-p=Path('lib/screens/home_screen.dart')
+p = Path('lib/screens/home_screen.dart')
 if not p.is_file():
     raise SystemExit('ERRO: home_screen.dart nao encontrado.')
-s=p.read_text(encoding='utf-8')
+s = p.read_text(encoding='utf-8')
 if 'class _HomeScreenState' not in s or 'Widget _empty()' not in s:
-    raise SystemExit('ERRO: estrutura HomeScreen nao reconhecida.')
-# Preserve the previously validated scrollable empty-state fix.
-a=s.index('  Widget _empty()')
-b=s.find('  Widget _home(',a)
-if b<0: raise SystemExit('ERRO: limite da tela vazia nao encontrado.')
-empty='''  Widget _empty() => LayoutBuilder(builder: (context, constraints) {
+    raise SystemExit('ERRO: estrutura da tela nao reconhecida.')
+
+# Validacoes antes de gravar: codigo real observado no diagnostico do Actions.
+hint_old = "hintText: _veloraTr('Buscar minisséries', 'Search mini-series', 'Buscar miniseries'),"
+hint_new = "hintText: _veloraTr('Buscar', 'Search', 'Buscar'),"
+empty_old = "? Center(child: Text(_veloraTr('Nenhuma minissérie encontrada.', 'No mini-series found.', 'No se encontraron miniseries.')))"
+empty_new = """? Center(child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  _veloraTr('Nenhuma minissérie encontrada.', 'No mini-series found.', 'No se encontraron miniseries.'),
+                  textAlign: TextAlign.center,
+                ),
+              ))"""
+list_old = "label: _veloraTr('Minha Lista', 'My List', 'Mi lista')"
+list_new = "label: _veloraTr('Lista', 'List', 'Lista')"
+search_old = "NavigationDestination(icon: Icon(Icons.search), label: _veloraTr('Explorar', 'Explore', 'Explorar'))"
+search_new = "NavigationDestination(icon: Icon(Icons.search), selectedIcon: Icon(Icons.search, color: _gold), label: _veloraTr('Explorar', 'Explore', 'Explorar'))"
+
+for name, old, new in [
+    ('campo de busca', hint_old, hint_new),
+    ('mensagem vazia', empty_old, empty_new),
+    ('rotulo Lista', list_old, list_new),
+    ('icone Explorar', search_old, search_new),
+]:
+    if s.count(old) != 1:
+        raise SystemExit(f'ERRO: {name} nao corresponde ao diagnostico (ocorrencias={s.count(old)}); nada alterado.')
+
+start = s.index('  Widget _empty()')
+end = s.find('  Widget _home(', start)
+if end < 0:
+    raise SystemExit('ERRO: limite do estado vazio nao encontrado; nada alterado.')
+# Preserva a solucao de rolagem que ja foi validada no aparelho.
+empty = '''  Widget _empty() => LayoutBuilder(builder: (context, constraints) {
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
       child: ConstrainedBox(
@@ -37,42 +64,19 @@ empty='''  Widget _empty() => LayoutBuilder(builder: (context, constraints) {
   });
 
 '''
-s=s[:a]+empty+s[b:]
-# Compact hint, retaining accessibility through TextField's semantic label wrapper.
-s,n=re.subn(r"hintText:\s*'Buscar minisséries'", "hintText: 'Buscar'", s, count=1)
-if n!=1 and "hintText: 'Buscar'" not in s:
-    raise SystemExit('ERRO: texto do campo de busca nao encontrado.')
-# Replace the entire empty-results Center, including any previously inserted padding.
-needle="'Nenhuma minissérie encontrada.'"
-idx=s.find(needle)
-if idx<0: raise SystemExit('ERRO: mensagem de busca nao encontrada; nada gravado.')
-start=s.rfind('?',0,idx)
-end=s.find(': GridView.builder',idx)
-if start<0 or end<0 or idx-start>350 or end-idx>350:
-    raise SystemExit('ERRO: estrutura da mensagem de busca nao reconhecida; nada gravado.')
-replacement="""? const Center(child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24),
-                child: Text('Nenhuma minissérie encontrada.',
-                    textAlign: TextAlign.center)))
-          """
-s=s[:start]+replacement+s[end:]
-# Shorter destination text keeps a single line with large system fonts.
-s,n=re.subn(r"label:\s*'Minha Lista'", "label: 'Lista'", s, count=1)
-if n!=1 and "label: 'Lista'" not in s:
-    raise SystemExit('ERRO: destino Minha Lista nao encontrado; nada gravado.')
-# Ensure selected search icon has visible contrast against the purple indicator.
-pattern=r"NavigationDestination\(icon:\s*(?:const\s+)?Icon\(Icons\.search\),\s*label:\s*'Explorar'\)"
-replace="NavigationDestination(icon: Icon(Icons.search),\n               selectedIcon: Icon(Icons.search, color: _gold), label: 'Explorar')"
-s,n=re.subn(pattern,replace,s,count=1)
-if n!=1 and 'selectedIcon: Icon(Icons.search, color: _gold)' not in s:
-    raise SystemExit('ERRO: icone Explorar nao reconhecido; nada gravado.')
-# Preserve or add height only once.
+s = s[:start] + empty + s[end:]
+for _, old, new in [
+    ('campo de busca', hint_old, hint_new),
+    ('mensagem vazia', empty_old, empty_new),
+    ('rotulo Lista', list_old, list_new),
+    ('icone Explorar', search_old, search_new),
+]:
+    s = s.replace(old, new, 1)
 if 'bottomNavigationBar: NavigationBar(' not in s:
-    raise SystemExit('ERRO: NavigationBar nao encontrada; nada gravado.')
-nav=s.index('bottomNavigationBar: NavigationBar(')
-near=s[nav:nav+130]
-if not re.search(r'\bheight\s*:',near):
-    s=s[:nav]+s[nav:].replace('bottomNavigationBar: NavigationBar(', 'bottomNavigationBar: NavigationBar(\n        height: 96,',1)
-p.write_text(s,encoding='utf-8')
-print('OK: Inicio preservado; busca compacta; mensagem centralizada; Lista e icone Explorar ajustados.')
+    raise SystemExit('ERRO: NavigationBar nao encontrada; nada alterado.')
+nav = s.index('bottomNavigationBar: NavigationBar(')
+if 'height:' not in s[nav:nav+100]:
+    s = s[:nav] + s[nav:].replace('bottomNavigationBar: NavigationBar(', 'bottomNavigationBar: NavigationBar(\n        height: 96,', 1)
+p.write_text(s, encoding='utf-8')
+print('OK: inicio rolavel, busca traduzida curta, mensagem centralizada, Lista e contraste ajustados.')
 PY
