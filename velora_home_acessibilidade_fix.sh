@@ -52,10 +52,16 @@ old = "          prefixIcon: const Icon(Icons.search, color: _gold),"
 if old not in s:
     raise SystemExit('ERRO: campo de busca nao reconhecido; nada alterado.')
 s = s.replace(old, "          prefixIcon: const Icon(Icons.search, color: _gold),\n          isDense: true,", 1)
-old = "? const Center(child: Text('Nenhuma minissérie encontrada.'))"
-if old not in s:
-    raise SystemExit('ERRO: mensagem de busca vazia nao reconhecida; nada alterado.')
-s = s.replace(old, "? const Center(child: Padding(\n                padding: EdgeInsets.symmetric(horizontal: 24),\n                child: Text('Nenhuma minissérie encontrada.',\n                    textAlign: TextAlign.center)))", 1)
+# A mensagem pode ter sido reformatada por outro script.
+# A melhoria e opcional: nao bloquear a compilacao se o trecho for diferente.
+pattern = r"\?\s*const\s+Center\s*\(\s*child:\s*Text\s*\(\s*'Nenhuma minissérie encontrada\.'\s*\)\s*\)"
+replacement = """? const Center(child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24),
+                child: Text('Nenhuma minissérie encontrada.',
+                    textAlign: TextAlign.center)))"""
+s, count = re.subn(pattern, lambda _: replacement, s, count=1)
+if count == 0:
+    print('AVISO: mensagem de busca ja personalizada; mantendo trecho existente.')
 
 # Give the navigation a little more height and allow Flutter to adapt labels.
 old = '      bottomNavigationBar: NavigationBar(\n'
