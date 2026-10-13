@@ -85,6 +85,8 @@ jobs:
         run: bash velora_auth_multilingual.sh
       - name: Melhorar responsividade e acessibilidade Velora
         run: bash velora_responsividade_acessibilidade.sh
+      - name: Corrigir responsividade da tela de idiomas
+        run: bash velora_idiomas_responsivo.sh
       - name: Configurar sistema de atualizacao Velora
         run: bash velora_update_upgrade.sh
       - name: Configurar assinatura permanente Velora
