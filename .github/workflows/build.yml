@@ -110,6 +110,8 @@ jobs:
           PY
       - name: Corrigir acessibilidade da tela Início e Explorar
         run: bash velora_home_acessibilidade_fix.sh
+      - name: Preparar configuracoes remotas Velora
+        run: bash velora_remote_config_etapa1.sh
       - name: Configurar sistema de atualizacao Velora
         run: bash velora_update_upgrade.sh
       - name: Configurar assinatura permanente Velora
