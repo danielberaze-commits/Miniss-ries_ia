@@ -63,7 +63,7 @@ empty = '''  Widget _empty() => LayoutBuilder(builder: (context, constraints) {
               ),
             ),
             const SizedBox(height: 10),
-            const Center(
+            Center(
               child: ConstrainedBox(
                 constraints: BoxConstraints(maxWidth: 340),
                 child: Text(
