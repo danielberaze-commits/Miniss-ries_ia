@@ -116,6 +116,8 @@ jobs:
         run: bash velora_remote_config_etapa2.sh
       - name: Diagnosticar configuracoes remotas
         run: bash velora_remote_config_diagnostico.sh
+      - name: Integrar idiomas das mensagens remotas
+        run: bash velora_remote_config_idiomas.sh
       - name: Configurar sistema de atualizacao Velora
         run: bash velora_update_upgrade.sh
       - name: Configurar assinatura permanente Velora
