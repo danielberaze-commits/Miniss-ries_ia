@@ -155,6 +155,152 @@ s = s[:start] + wrapped + s[end+1:]
 if s.count('bottomNavigationBar: ValueListenableBuilder<VeloraLanguage>(') != 1:
     raise SystemExit('ERRO: resultado do menu inconsistente; nada alterado.')
 
+# Primeiro banner remoto: utiliza a configuracao home existente no Supabase.
+# Mantem a Home vazia acessivel quando nao ha imagem configurada.
+# O destaque padrao de uma serie publicada continua quando o banner esta oculto.
+banner_method = '  Widget _veloraRemoteBanner() {'
+if banner_method in s:
+    raise SystemExit('ERRO: banner remoto duplicado. Nada alterado.')
+for marker in (
+    '  Widget _empty()',
+    '  Widget _home(List<Map<String, dynamic>> items) {',
+    '  Widget _explore(',
+    'VeloraRemoteConfig.home',
+    '  Widget _veloraMaintenanceView() {',
+):
+    if s.count(marker) != 1:
+        raise SystemExit(f'ERRO: estrutura esperada nao encontrada de forma unica ({marker}). Nada alterado.')
+
+banner_code = '''  bool _veloraHasRemoteBanner() {
+    final config = VeloraRemoteConfig.home;
+    if (config['show_featured'] != true) return false;
+    final source = config['banner_url'];
+    if (source is! String || source.trim().isEmpty) return false;
+    final uri = Uri.tryParse(source.trim());
+    return uri != null && uri.scheme == 'https' && uri.host.isNotEmpty;
+  }
+
+  String _veloraBannerLocalized(String baseKey,
+      String fallbackPt, String fallbackEn, String fallbackEs) {
+    final language = VeloraLanguageStore.current.value;
+    final suffix = switch (language) {
+      VeloraLanguage.ptBR => 'pt',
+      VeloraLanguage.en => 'en',
+      VeloraLanguage.es => 'es',
+    };
+    final remote = VeloraRemoteConfig.home['${baseKey}_$suffix'];
+    if (remote is String && remote.trim().isNotEmpty) {
+      return remote.trim();
+    }
+    return switch (language) {
+      VeloraLanguage.ptBR => fallbackPt,
+      VeloraLanguage.en => fallbackEn,
+      VeloraLanguage.es => fallbackEs,
+    };
+  }
+
+  Widget _veloraRemoteBanner() {
+    final value = VeloraRemoteConfig.home['banner_url'];
+    final imageUrl = value is String ? value.trim() : '';
+    final title = _veloraBannerLocalized('banner_title',
+        'Destaque Velora', 'Featured on Velora', 'Destacado en Velora');
+    final description = _veloraBannerLocalized('banner_description',
+        '', '', '');
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: AspectRatio(
+          aspectRatio: 16 / 9,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.network(
+                imageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) =>
+                    Container(color: const Color(0xFF17121F),
+                      child: const Center(child: Icon(
+                        Icons.movie_filter_outlined,
+                        color: Color(0xFFEBC58C), size: 54))),
+              ),
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color(0x1108070E), Color(0xBB08070E)],
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 12, 18, 16),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('VELORA ORIGINALS',
+                      style: TextStyle(color: Color(0xFFEBC58C),
+                        letterSpacing: 1.5, fontSize: 11,
+                        fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 6),
+                    Text(title, maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Colors.white,
+                        fontSize: 23, fontWeight: FontWeight.bold)),
+                    if (description.isNotEmpty) ...[
+                      const SizedBox(height: 5),
+                      Text(description, maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Color(0xFFE4DCE9),
+                          fontSize: 13)),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+'''
+s = s.replace('  Widget _empty()', banner_code + '  Widget _empty()', 1)
+home_start = s.index('  Widget _home(List<Map<String, dynamic>> items) {')
+home_end = s.index('  Widget _explore(', home_start)
+old_home = s[home_start:home_end]
+empty_original = '    if (items.isEmpty) return _empty();'
+hero_original = '        _hero(items.first),'
+if old_home.count(empty_original) != 1 or old_home.count(hero_original) != 1:
+    raise SystemExit('ERRO: estrutura de estado vazio ou destaque original alterada. Nada alterado.')
+new_home = old_home.replace(empty_original, '''    if (items.isEmpty) {
+      if (!_veloraHasRemoteBanner()) return _empty();
+      return Column(children: [
+        _veloraRemoteBanner(),
+        Expanded(child: _empty()),
+      ]);
+    }''', 1)
+new_home = new_home.replace(hero_original, '''        if (_veloraHasRemoteBanner())
+          _veloraRemoteBanner()
+        else
+          _hero(items.first),''', 1)
+s = s[:home_start] + new_home + s[home_end:]
+for expected in (
+    'Widget _veloraRemoteBanner()',
+    'Uri.tryParse(source.trim())',
+    'Expanded(child: _empty())',
+    '_hero(items.first),',
+    'show_featured',
+    'banner_url',
+):
+    if expected not in s:
+        raise SystemExit(f'ERRO: verificacao do banner falhou ({expected}). Nada alterado.')
+print('OK: um banner remoto opcional acima da Home vazia e no destaque do catalogo.')
+print('OK: imagem HTTPS, titulo e descricao em pt/en/es; sem botoes ou rotas ficticias.')
+print('OK: modo manutencao, mensagem remota e destaque padrao preservados.')
+
 # Escrita unica: se alguma verificacao falhar, home_screen.dart permanece intacto.
 p.write_text(s, encoding='utf-8')
 print('OK: descricao, atualizar catalogo e tela de erro com traducao pt/en/es.')
