@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# Velora — traducoes, estabilidade e menu inferior reativo (script consolidado).
+# Velora — traducoes, banner, manutencao e protecao contra carregamento infinito.
 # Rodar DEPOIS de velora_remote_config_idiomas.sh e ANTES do build.
-# Nao modifica auth, Supabase, rotas, callbacks nem layout.
+# Nao altera banco, login, rotas, callbacks ou estrutura visual.
 python3 - <<'PY'
 from pathlib import Path
 import re
@@ -300,6 +300,50 @@ for expected in (
 print('OK: um banner remoto opcional acima da Home vazia e no destaque do catalogo.')
 print('OK: imagem HTTPS, titulo e descricao em pt/en/es; sem botoes ou rotas ficticias.')
 print('OK: modo manutencao, mensagem remota e destaque padrao preservados.')
+
+# Protecao de estabilidade: impedir que a Home fique aguardando a API para sempre.
+# A consulta do catalogo deve dar erro apos 15s; a interface ja possui o
+# botao traduzido "Tentar novamente". Nao disfarcar erros com lista vazia.
+reload_start = s.find('  void _reload() {')
+reload_end = s.find('\n  String _value(', reload_start)
+if reload_start < 0 or reload_end < 0:
+    raise SystemExit('ERRO: limites de _reload nao reconhecidos. Nada alterado.')
+reload_code = s[reload_start:reload_end]
+if reload_code.count('_series =') != 1:
+    raise SystemExit('ERRO: carregamento do catalogo inesperado. Nada alterado.')
+if '.timeout(const Duration(seconds: 15))' not in reload_code:
+    match = re.search(r'(?s)(_series\s*=\s*)(.*?)(;)', reload_code)
+    if not match or '.from(' not in match.group(2) or '.select(' not in match.group(2):
+        raise SystemExit('ERRO: consulta do catalogo nao reconhecida. Nada alterado.')
+    expression = match.group(2).rstrip()
+    # A chamada ao Supabase retorna Future; o timeout preserva o erro,
+    # permitindo que FutureBuilder mostre a tela de recuperacao.
+    new_code = (reload_code[:match.start(2)] + expression +
+        '.timeout(const Duration(seconds: 15))' +
+        reload_code[match.end(2):])
+    reload_code = new_code
+s = s[:reload_start] + reload_code + s[reload_end:]
+
+# As configuracoes remotas tambem podem demorar quando o Supabase falha.
+# Timeout com retorno false conserva o cache em memoria do servico.
+refresh_base = 'VeloraRemoteConfig.refresh()'
+refresh_guard = ('VeloraRemoteConfig.refresh().timeout(\n'
+                 '        const Duration(seconds: 10),\n'
+                 '        onTimeout: () => false,\n'
+                 '      )')
+expected_refreshes = s.count(refresh_base)
+if expected_refreshes < 2 or expected_refreshes > 5:
+    raise SystemExit(f'ERRO: consultas remotas inesperadas ({expected_refreshes}). Nada alterado.')
+# So trocar chamadas ainda sem timeout, suportando uma futura reexecucao do script.
+if 'onTimeout: () => false' not in s:
+    s = s.replace(refresh_base, refresh_guard)
+
+if '.timeout(const Duration(seconds: 15))' not in s or 'onTimeout: () => false' not in s:
+    raise SystemExit('ERRO: limites de espera nao aplicados. Nada alterado.')
+if 'Widget _veloraRemoteBanner()' not in s or 'Widget _veloraMaintenanceView()' not in s:
+    raise SystemExit('ERRO: banner/manutencao nao preservados. Nada alterado.')
+print('OK: catalogo aguarda no maximo 15 segundos; depois exibe erro e tentar novamente.')
+print('OK: atualizacao remota aguarda no maximo 10 segundos e preserva cache da sessao.')
 
 # Escrita unica: se alguma verificacao falhar, home_screen.dart permanece intacto.
 p.write_text(s, encoding='utf-8')
