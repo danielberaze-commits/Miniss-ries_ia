@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# Velora — traducoes, banner, manutencao e protecao contra carregamento infinito.
+# Velora — carrossel manual, idiomas, manutencao e timeout das consultas.
 # Rodar DEPOIS de velora_remote_config_idiomas.sh e ANTES do build.
-# Nao altera banco, login, rotas, callbacks ou estrutura visual.
+# Preserva login, rotas, modo manutencao e protecoes de estabilidade.
 python3 - <<'PY'
 from pathlib import Path
 import re
@@ -155,12 +155,9 @@ s = s[:start] + wrapped + s[end+1:]
 if s.count('bottomNavigationBar: ValueListenableBuilder<VeloraLanguage>(') != 1:
     raise SystemExit('ERRO: resultado do menu inconsistente; nada alterado.')
 
-# Primeiro banner remoto: utiliza a configuracao home existente no Supabase.
-# Mantem a Home vazia acessivel quando nao ha imagem configurada.
-# O destaque padrao de uma serie publicada continua quando o banner esta oculto.
-banner_method = '  Widget _veloraRemoteBanner() {'
-if banner_method in s:
-    raise SystemExit('ERRO: banner remoto duplicado. Nada alterado.')
+# Carrossel remoto: usa home.banners, respeitando enabled e order.
+# Se a lista ainda nao existir, mantem o unico banner_url anterior.
+# Gestos manuais, botoes de 48 px e textos em widgets acessiveis.
 for marker in (
     '  Widget _empty()',
     '  Widget _home(List<Map<String, dynamic>> items) {',
@@ -169,29 +166,79 @@ for marker in (
     '  Widget _veloraMaintenanceView() {',
 ):
     if s.count(marker) != 1:
-        raise SystemExit(f'ERRO: estrutura esperada nao encontrada de forma unica ({marker}). Nada alterado.')
+        raise SystemExit(f'ERRO: estrutura da Home inesperada ({marker}). Nada alterado.')
+if 'Widget _veloraRemoteBanner()' in s or 'Widget _veloraBannerCarousel()' in s:
+    raise SystemExit('ERRO: outra implementacao de banner encontrada. Nada alterado.')
 
-banner_code = '''  bool _veloraHasRemoteBanner() {
-    final config = VeloraRemoteConfig.home;
-    if (config['show_featured'] != true) return false;
-    final source = config['banner_url'];
+# Estado e controller sao adicionados ao State original; observer ja existente
+# (atualizacao ao retornar do segundo plano) continua sendo preservado.
+state_anchor = 'class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {'
+if s.count(state_anchor) != 1:
+    raise SystemExit('ERRO: classe State com observer ausente. Nada alterado.')
+s = s.replace(state_anchor, state_anchor + '''
+  final PageController _veloraBannerController = PageController();
+  int _veloraBannerPage = 0;
+''', 1)
+dispose_anchor = '    WidgetsBinding.instance.removeObserver(this);'
+if s.count(dispose_anchor) != 1 or s.count('    super.dispose();') != 1:
+    raise SystemExit('ERRO: dispose/observer inesperados. Nada alterado.')
+s = s.replace(dispose_anchor, dispose_anchor + '\n    _veloraBannerController.dispose();', 1)
+
+banner_code = '''  bool _veloraValidBannerUrl(Object? source) {
     if (source is! String || source.trim().isEmpty) return false;
     final uri = Uri.tryParse(source.trim());
     return uri != null && uri.scheme == 'https' && uri.host.isNotEmpty;
   }
 
-  String _veloraBannerLocalized(String baseKey,
-      String fallbackPt, String fallbackEn, String fallbackEs) {
+  List<Map<String, dynamic>> _veloraActiveBanners() {
+    final home = VeloraRemoteConfig.home;
+    if (home['show_featured'] != true) return [];
+    final raw = home['banners'];
+    if (raw is List) {
+      final banners = <Map<String, dynamic>>[];
+      for (final entry in raw) {
+        if (entry is! Map) continue;
+        final data = Map<String, dynamic>.from(entry);
+        if (data['enabled'] == true &&
+            _veloraValidBannerUrl(data['image_url'])) {
+          banners.add(data);
+        }
+      }
+      banners.sort((a, b) {
+        final orderA = int.tryParse((a['order'] ?? 9999).toString()) ?? 9999;
+        final orderB = int.tryParse((b['order'] ?? 9999).toString()) ?? 9999;
+        return orderA.compareTo(orderB);
+      });
+      return banners;
+    }
+    // Compatibilidade com as versoes antigas do Supabase.
+    if (_veloraValidBannerUrl(home['banner_url'])) {
+      return [{
+        'id': 'legacy',
+        'image_url': home['banner_url'],
+        'title_pt': home['banner_title_pt'],
+        'title_en': home['banner_title_en'],
+        'title_es': home['banner_title_es'],
+        'description_pt': home['banner_description_pt'],
+        'description_en': home['banner_description_en'],
+        'description_es': home['banner_description_es'],
+      }];
+    }
+    return [];
+  }
+
+  bool _veloraHasRemoteBanner() => _veloraActiveBanners().isNotEmpty;
+
+  String _veloraBannerLocalized(Map<String, dynamic> banner,
+      String prefix, String fallbackPt, String fallbackEn, String fallbackEs) {
     final language = VeloraLanguageStore.current.value;
     final suffix = switch (language) {
       VeloraLanguage.ptBR => 'pt',
       VeloraLanguage.en => 'en',
       VeloraLanguage.es => 'es',
     };
-    final remote = VeloraRemoteConfig.home['${baseKey}_$suffix'];
-    if (remote is String && remote.trim().isNotEmpty) {
-      return remote.trim();
-    }
+    final remote = banner['${prefix}_$suffix'];
+    if (remote is String && remote.trim().isNotEmpty) return remote.trim();
     return switch (language) {
       VeloraLanguage.ptBR => fallbackPt,
       VeloraLanguage.en => fallbackEn,
@@ -199,107 +246,174 @@ banner_code = '''  bool _veloraHasRemoteBanner() {
     };
   }
 
-  Widget _veloraRemoteBanner() {
-    final value = VeloraRemoteConfig.home['banner_url'];
-    final imageUrl = value is String ? value.trim() : '';
-    final title = _veloraBannerLocalized('banner_title',
-        'Destaque Velora', 'Featured on Velora', 'Destacado en Velora');
-    final description = _veloraBannerLocalized('banner_description',
-        '', '', '');
+  void _veloraGoToBanner(int target, int count) {
+    if (target < 0 || target >= count || !_veloraBannerController.hasClients) {
+      return;
+    }
+    _veloraBannerController.animateToPage(target,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut);
+  }
 
+  Widget _veloraBannerCarousel() {
+    final banners = _veloraActiveBanners();
+    if (banners.isEmpty) return const SizedBox.shrink();
+    final count = banners.length;
+    // Se o administrador desativar slides enquanto o app esta aberto,
+    // volte para a primeira pagina, evitando um indice fora do novo limite.
+    if (_veloraBannerPage >= count) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (_veloraBannerController.hasClients) {
+          _veloraBannerController.jumpToPage(0);
+        }
+        setState(() => _veloraBannerPage = 0);
+      });
+    }
+    final current = _veloraBannerPage.clamp(0, count - 1);
+    final width = MediaQuery.sizeOf(context).width - 32;
+    final height = width * 9 / 16 + 124;
+    final previousLabel = _veloraTr('Banner anterior', 'Previous banner', 'Banner anterior');
+    final nextLabel = _veloraTr('Próximo banner', 'Next banner', 'Siguiente banner');
+    final bannerWord = _veloraTr('Banner', 'Banner', 'Banner');
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
-        child: AspectRatio(
-          aspectRatio: 16 / 9,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              Image.network(
-                imageUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) =>
-                    Container(color: const Color(0xFF17121F),
-                      child: const Center(child: Icon(
-                        Icons.movie_filter_outlined,
-                        color: Color(0xFFEBC58C), size: 54))),
-              ),
-              const DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Color(0x1108070E), Color(0xBB08070E)],
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        SizedBox(
+          height: height,
+          child: PageView.builder(
+            controller: _veloraBannerController,
+            itemCount: count,
+            onPageChanged: (page) {
+              if (mounted) setState(() => _veloraBannerPage = page);
+            },
+            itemBuilder: (context, index) {
+              final item = banners[index];
+              final url = item['image_url'] as String;
+              final title = _veloraBannerLocalized(item, 'title',
+                  'Destaque Velora', 'Featured on Velora', 'Destacado en Velora');
+              final description = _veloraBannerLocalized(item, 'description',
+                  '', '', '');
+              return Semantics(
+                container: true,
+                label: '$bannerWord ${index + 1} / $count',
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(18),
+                  child: ColoredBox(
+                    color: const Color(0xFF17121F),
+                    child: Column(children: [
+                      AspectRatio(
+                        aspectRatio: 16 / 9,
+                        child: Image.network(url,
+                          fit: BoxFit.cover,
+                          excludeFromSemantics: true,
+                          errorBuilder: (_, __, ___) => const Center(
+                            child: Icon(Icons.movie_filter_outlined,
+                              color: Color(0xFFEBC58C), size: 54)),
+                        ),
+                      ),
+                      // Textos separados da imagem: ampliacao da fonte e
+                      // leitura de tela nao dependem da arte do banner.
+                      Expanded(child: SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(16, 9, 16, 10),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(title, style: const TextStyle(
+                              color: Colors.white, fontSize: 21,
+                              fontWeight: FontWeight.bold)),
+                            if (description.isNotEmpty) ...[
+                              const SizedBox(height: 3),
+                              Text(description, style: const TextStyle(
+                                color: Color(0xFFE4DCE9), fontSize: 14)),
+                            ],
+                          ],
+                        ),
+                      )),
+                    ]),
                   ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(18, 12, 18, 16),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('VELORA ORIGINALS',
-                      style: TextStyle(color: Color(0xFFEBC58C),
-                        letterSpacing: 1.5, fontSize: 11,
-                        fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 6),
-                    Text(title, maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: Colors.white,
-                        fontSize: 23, fontWeight: FontWeight.bold)),
-                    if (description.isNotEmpty) ...[
-                      const SizedBox(height: 5),
-                      Text(description, maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Color(0xFFE4DCE9),
-                          fontSize: 13)),
-                    ],
-                  ],
-                ),
-              ),
-            ],
+              );
+            },
           ),
         ),
-      ),
+        if (count > 1)
+          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            IconButton(
+              tooltip: previousLabel,
+              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+              onPressed: current > 0
+                  ? () => _veloraGoToBanner(current - 1, count) : null,
+              icon: const Icon(Icons.chevron_left),
+            ),
+            Semantics(
+              liveRegion: true,
+              label: '$bannerWord ${current + 1} / $count',
+              child: Row(mainAxisSize: MainAxisSize.min,
+                children: List.generate(count, (i) => Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Icon(
+                    i == current ? Icons.circle : Icons.circle_outlined,
+                    size: 10,
+                    color: i == current
+                      ? const Color(0xFFEBC58C)
+                      : const Color(0xFFBDB5C9),
+                  ),
+                )),
+              ),
+            ),
+            IconButton(
+              tooltip: nextLabel,
+              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+              onPressed: current < count - 1
+                  ? () => _veloraGoToBanner(current + 1, count) : null,
+              icon: const Icon(Icons.chevron_right),
+            ),
+          ]),
+      ]),
     );
   }
 
 '''
+# The template above uses a stand-in character in Dart interpolations, so
+# the outer Python script can safely emit literal '$' characters.
 s = s.replace('  Widget _empty()', banner_code + '  Widget _empty()', 1)
+
 home_start = s.index('  Widget _home(List<Map<String, dynamic>> items) {')
 home_end = s.index('  Widget _explore(', home_start)
 old_home = s[home_start:home_end]
 empty_original = '    if (items.isEmpty) return _empty();'
 hero_original = '        _hero(items.first),'
 if old_home.count(empty_original) != 1 or old_home.count(hero_original) != 1:
-    raise SystemExit('ERRO: estrutura de estado vazio ou destaque original alterada. Nada alterado.')
+    raise SystemExit('ERRO: Home anterior nao reconhecida. Nada alterado.')
 new_home = old_home.replace(empty_original, '''    if (items.isEmpty) {
       if (!_veloraHasRemoteBanner()) return _empty();
-      return Column(children: [
-        _veloraRemoteBanner(),
-        Expanded(child: _empty()),
+      // A Home inteira rola em telas baixas e com fontes ampliadas.
+      return ListView(children: [
+        _veloraBannerCarousel(),
+        SizedBox(height: 360, child: _empty()),
       ]);
     }''', 1)
 new_home = new_home.replace(hero_original, '''        if (_veloraHasRemoteBanner())
-          _veloraRemoteBanner()
+          _veloraBannerCarousel()
         else
           _hero(items.first),''', 1)
 s = s[:home_start] + new_home + s[home_end:]
 for expected in (
-    'Widget _veloraRemoteBanner()',
-    'Uri.tryParse(source.trim())',
-    'Expanded(child: _empty())',
-    '_hero(items.first),',
+    'Widget _veloraBannerCarousel()',
+    'PageView.builder(',
+    'onPageChanged:',
+    'Banner anterior',
+    'banner_description_es',
     'show_featured',
-    'banner_url',
+    '_hero(items.first),',
+    '_veloraBannerController.dispose();',
 ):
     if expected not in s:
-        raise SystemExit(f'ERRO: verificacao do banner falhou ({expected}). Nada alterado.')
-print('OK: um banner remoto opcional acima da Home vazia e no destaque do catalogo.')
-print('OK: imagem HTTPS, titulo e descricao em pt/en/es; sem botoes ou rotas ficticias.')
-print('OK: modo manutencao, mensagem remota e destaque padrao preservados.')
+        raise SystemExit(f'ERRO: implementacao do carrossel incompleta ({expected}). Nada alterado.')
+print('OK: banners ativos e ordenados da lista remota, com fallback do banner antigo.')
+print('OK: carrossel manual, botoes acessiveis, textos pt/en/es e sem autoplay.')
+print('OK: scroll vertical em telas pequenas; login e manutencao preservados.')
 
 # Protecao de estabilidade: impedir que a Home fique aguardando a API para sempre.
 # A consulta do catalogo deve dar erro apos 15s; a interface ja possui o
@@ -336,18 +450,3 @@ if expected_refreshes < 2 or expected_refreshes > 5:
     raise SystemExit(f'ERRO: consultas remotas inesperadas ({expected_refreshes}). Nada alterado.')
 # So trocar chamadas ainda sem timeout, suportando uma futura reexecucao do script.
 if 'onTimeout: () => false' not in s:
-    s = s.replace(refresh_base, refresh_guard)
-
-if '.timeout(const Duration(seconds: 15))' not in s or 'onTimeout: () => false' not in s:
-    raise SystemExit('ERRO: limites de espera nao aplicados. Nada alterado.')
-if 'Widget _veloraRemoteBanner()' not in s or 'Widget _veloraMaintenanceView()' not in s:
-    raise SystemExit('ERRO: banner/manutencao nao preservados. Nada alterado.')
-print('OK: catalogo aguarda no maximo 15 segundos; depois exibe erro e tentar novamente.')
-print('OK: atualizacao remota aguarda no maximo 10 segundos e preserva cache da sessao.')
-
-# Escrita unica: se alguma verificacao falhar, home_screen.dart permanece intacto.
-p.write_text(s, encoding='utf-8')
-print('OK: descricao, atualizar catalogo e tela de erro com traducao pt/en/es.')
-print('OK: menu Inicio/Home/Inicio atualizado ao mudar o idioma.')
-print('OK: boas-vindas remotas, rotas, layout e recarga preservados.')
-PY
