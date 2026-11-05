@@ -272,7 +272,7 @@ banner_code = '''  bool _veloraValidBannerUrl(Object? source) {
     }
     final current = _veloraBannerPage.clamp(0, count - 1);
     final width = MediaQuery.sizeOf(context).width - 32;
-    final height = width * 9 / 16 + 86;
+    final height = width * 9 / 16 + 70;
     final previousLabel = _veloraTr('Banner anterior', 'Previous banner', 'Banner anterior');
     final nextLabel = _veloraTr('Próximo banner', 'Next banner', 'Siguiente banner');
     final bannerWord = _veloraTr('Banner', 'Banner', 'Banner');
