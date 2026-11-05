@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# Velora — carrossel compacto manual, idiomas, manutencao e timeout das consultas.
+# Velora — carrossel manual, idiomas, manutencao e timeout das consultas.
 # Rodar DEPOIS de velora_remote_config_idiomas.sh e ANTES do build.
 # Preserva login, rotas, modo manutencao e protecoes de estabilidade.
 python3 - <<'PY'
@@ -272,7 +272,7 @@ banner_code = '''  bool _veloraValidBannerUrl(Object? source) {
     }
     final current = _veloraBannerPage.clamp(0, count - 1);
     final width = MediaQuery.sizeOf(context).width - 32;
-    final height = width * 9 / 16 + 86;
+    final height = width * 9 / 16 + 124;
     final previousLabel = _veloraTr('Banner anterior', 'Previous banner', 'Banner anterior');
     final nextLabel = _veloraTr('Próximo banner', 'Next banner', 'Siguiente banner');
     final bannerWord = _veloraTr('Banner', 'Banner', 'Banner');
@@ -449,4 +449,4 @@ expected_refreshes = s.count(refresh_base)
 if expected_refreshes < 2 or expected_refreshes > 5:
     raise SystemExit(f'ERRO: consultas remotas inesperadas ({expected_refreshes}). Nada alterado.')
 # So trocar chamadas ainda sem timeout, suportando uma futura reexecucao do script.
-if 'onTimeout: () => false' no
+if 'onTimeout: () => false' not in s:
