@@ -450,3 +450,19 @@ if expected_refreshes < 2 or expected_refreshes > 5:
     raise SystemExit(f'ERRO: consultas remotas inesperadas ({expected_refreshes}). Nada alterado.')
 # So trocar chamadas ainda sem timeout, suportando uma futura reexecucao do script.
 if 'onTimeout: () => false' not in s:
+s = s.replace(refresh_base, refresh_guard)
+
+if '.timeout(const Duration(seconds: 15))' not in s or 'onTimeout: () => false' not in s:
+    raise SystemExit('ERRO: limites de espera nao aplicados. Nada alterado.')
+if 'Widget _veloraBannerCarousel()' not in s or 'Widget _veloraMaintenanceView()' not in s:
+    raise SystemExit('ERRO: banner/manutencao nao preservados. Nada alterado.')
+print('OK: catalogo aguarda no maximo 15 segundos; depois exibe erro e tentar novamente.')
+print('OK: atualizacao remota aguarda no maximo 10 segundos e preserva cache da sessao.')
+
+# Escrita unica: se alguma verificacao falhar, home_screen.dart permanece intacto.
+p.write_text(s, encoding='utf-8')
+print('OK: descricao, atualizar catalogo e tela de erro com traducao pt/en/es.')
+print('OK: menu Inicio/Home/Inicio atualizado ao mudar o idioma.')
+print('OK: boas-vindas remotas, rotas, layout e recarga preservados.')
+PY
+
