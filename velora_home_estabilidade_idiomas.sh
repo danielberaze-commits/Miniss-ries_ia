@@ -450,7 +450,7 @@ if expected_refreshes < 2 or expected_refreshes > 5:
     raise SystemExit(f'ERRO: consultas remotas inesperadas ({expected_refreshes}). Nada alterado.')
 # So trocar chamadas ainda sem timeout, suportando uma futura reexecucao do script.
 if 'onTimeout: () => false' not in s:
-s = s.replace(refresh_base, refresh_guard)
+    s = s.replace(refresh_base, refresh_guard)
 
 if '.timeout(const Duration(seconds: 15))' not in s or 'onTimeout: () => false' not in s:
     raise SystemExit('ERRO: limites de espera nao aplicados. Nada alterado.')
