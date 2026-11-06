@@ -396,6 +396,7 @@ new_home = old_home.replace(empty_original, '''    if (items.isEmpty) {
   height: MediaQuery.textScalerOf(context).scale(360),
   child: _empty(),
 ),
+    ]);
     }''', 1)
 new_home = new_home.replace(hero_original, '''        if (_veloraHasRemoteBanner())
           _veloraBannerCarousel()
