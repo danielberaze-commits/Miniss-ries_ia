@@ -392,8 +392,10 @@ new_home = old_home.replace(empty_original, '''    if (items.isEmpty) {
       // A Home inteira rola em telas baixas e com fontes ampliadas.
       return ListView(children: [
         _veloraBannerCarousel(),
-        SizedBox(height: 360, child: _empty()),
-      ]);
+        SizedBox(
+  height: MediaQuery.textScalerOf(context).scale(360),
+  child: _empty(),
+),
     }''', 1)
 new_home = new_home.replace(hero_original, '''        if (_veloraHasRemoteBanner())
           _veloraBannerCarousel()
